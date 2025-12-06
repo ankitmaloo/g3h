@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { verifyImage } from "@/services/api";
 
 // Premium background reused for consistency
 const BackgroundEffects = () => (
@@ -60,12 +61,45 @@ const ScannerBeam = () => (
     </div>
 );
 
+/**
+ * Format extracted data for display. If JSON, display values only (no keys).
+ * Otherwise display raw text as markdown.
+ */
+function formatExtractedData(data: string): string {
+    if (!data) return '';
+
+    try {
+        // Try to parse as JSON
+        const parsed = JSON.parse(data);
+
+        if (typeof parsed === 'object' && parsed !== null) {
+            // Extract only values, format as markdown-style text
+            const values = Object.values(parsed);
+            return values
+                .map(val => {
+                    if (typeof val === 'object') {
+                        return JSON.stringify(val);
+                    }
+                    return String(val);
+                })
+                .join('\n');
+        }
+
+        return String(parsed);
+    } catch {
+        // Not JSON, return as-is
+        return data;
+    }
+}
+
 export default function DetectionScreen() {
     const [image, setImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scanComplete, setScanComplete] = useState(false);
     const [metadata, setMetadata] = useState<string | null>(null);
+    const [extractedData, setExtractedData] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Simulate finding data
     const [verificationStep, setVerificationStep] = useState(0);
@@ -84,22 +118,36 @@ export default function DetectionScreen() {
         setPreviewUrl(URL.createObjectURL(file));
         setScanComplete(false);
         setMetadata(null);
+        setExtractedData(null);
         setVerificationStep(0);
     };
 
-    const handleScan = () => {
+    const handleScan = async () => {
         if (!image) return;
         setIsScanning(true);
+        setError(null);
         setVerificationStep(1);
 
-        // Simulation timeline
-        setTimeout(() => setVerificationStep(2), 1500); // Analyze structure
-        setTimeout(() => setVerificationStep(3), 3000); // Extract payload
-        setTimeout(() => {
+        try {
+            // Step through visual states while API call happens
+            setTimeout(() => setVerificationStep(2), 1000);
+            setTimeout(() => setVerificationStep(3), 2000);
+
+            // Call backend API
+            const result = await verifyImage(image);
+
             setIsScanning(false);
             setScanComplete(true);
-            setMetadata("PROVENANCE_KEY_VERIFIED: 0x92f...a12b\nTIMESTAMP: 2024-12-06T19:42:00Z\nORIGIN: NEXUS_TERMINAL_ALPHA\nINTEGRITY: 100%");
-        }, 4500);
+            setMetadata(result.analysis);
+            setExtractedData(result.extracted_data);
+        } catch (err) {
+            console.error("Verification failed:", err);
+            setError(err instanceof Error ? err.message : "Verification failed");
+            setIsScanning(false);
+            setScanComplete(true);
+            setMetadata("ERROR: Verification failed. Please try again.");
+            setExtractedData(null);
+        }
     };
 
     const reset = () => {
@@ -107,7 +155,9 @@ export default function DetectionScreen() {
         setPreviewUrl(null);
         setScanComplete(false);
         setMetadata(null);
+        setExtractedData(null);
         setVerificationStep(0);
+        setError(null);
     };
 
     return (
@@ -268,13 +318,26 @@ export default function DetectionScreen() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-zinc-900/50 p-4 rounded-lg border border-white/5">
                                             <p className="text-[10px] uppercase text-zinc-500 tracking-wider mb-1">Confidence Score</p>
-                                            <p className="text-2xl text-white font-light">99.9%</p>
+                                            <p className="text-2xl text-white font-light">{extractedData ? '99.9%' : '—'}</p>
                                         </div>
                                         <div className="bg-zinc-900/50 p-4 rounded-lg border border-white/5">
                                             <p className="text-[10px] uppercase text-zinc-500 tracking-wider mb-1">Encryption</p>
-                                            <p className="text-2xl text-white font-light">AES-256</p>
+                                            <p className="text-2xl text-white font-light">{extractedData ? 'DCT/DWT' : '—'}</p>
                                         </div>
                                     </div>
+
+                                    {/* Extracted Data Display */}
+                                    {extractedData && (
+                                        <div className="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Fingerprint size={16} className="text-rose-400" />
+                                                <p className="text-[10px] uppercase text-rose-400 tracking-wider font-bold">Extracted Hidden Data</p>
+                                            </div>
+                                            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-rose-200 whitespace-pre-wrap leading-relaxed">
+                                                {formatExtractedData(extractedData)}
+                                            </div>
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
                         </motion.div>

@@ -1,15 +1,23 @@
 """
 Gemini AI Assistant Integration
 Supports latest Gemini models: 3 Pro, 2.5 Pro, 2.5 Flash
+
+Updated to use new google-genai SDK
 """
 
-import google.generativeai as genai
+import os
+from google import genai
+from google.genai import types
 from constants import settings
 from typing import AsyncGenerator, Optional
 
 
-# Configure Gemini API
-genai.configure(api_key=settings.google_api_key)
+def _get_client() -> genai.Client:
+    """Get a configured Gemini client"""
+    api_key = settings.google_api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if api_key:
+        return genai.Client(api_key=api_key)
+    return genai.Client()
 
 
 async def stream_gemini_response(
@@ -31,22 +39,17 @@ async def stream_gemini_response(
         Text chunks as they arrive
     """
     try:
-        model = genai.GenerativeModel(model_name)
-
-        generation_config = {
-            "temperature": temperature,
-        }
-
+        client = _get_client()
+        
+        config_dict = {"temperature": temperature}
         if max_output_tokens:
-            generation_config["max_output_tokens"] = max_output_tokens
+            config_dict["max_output_tokens"] = max_output_tokens
 
-        response = model.generate_content(
-            prompt,
-            stream=True,
-            generation_config=generation_config
-        )
-
-        for chunk in response:
+        async for chunk in await client.aio.models.generate_content_stream(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(**config_dict)
+        ):
             if chunk.text:
                 yield chunk.text
 
@@ -71,29 +74,24 @@ async def chat_with_history(
         Text chunks as they arrive
     """
     try:
-        model = genai.GenerativeModel(model_name)
-
-        # Convert messages to Gemini format
-        chat = model.start_chat(history=[])
-
-        # Add history (all but last message)
-        for msg in messages[:-1]:
+        client = _get_client()
+        
+        # Convert messages to Gemini content format
+        contents = []
+        for msg in messages:
             role = "user" if msg["role"] == "user" else "model"
-            chat.history.append({
-                "role": role,
-                "parts": [msg["content"]]
-            })
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=msg["content"])]
+                )
+            )
 
-        # Stream the latest message
-        last_message = messages[-1]["content"]
-
-        response = chat.send_message(
-            last_message,
-            stream=True,
-            generation_config={"temperature": temperature}
-        )
-
-        for chunk in response:
+        async for chunk in await client.aio.models.generate_content_stream(
+            model=model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(temperature=temperature)
+        ):
             if chunk.text:
                 yield chunk.text
 
@@ -116,17 +114,20 @@ async def generate_with_thinking(
         Dict with 'thinking' and 'response' fields
     """
     try:
-        model = genai.GenerativeModel(model_name)
+        client = _get_client()
 
-        response = model.generate_content(prompt)
+        response = await client.aio.models.generate_content(
+            model=model_name,
+            contents=prompt,
+        )
 
         # Extract thinking and final response if available
         thinking_parts = []
         response_parts = []
 
-        for part in response.parts:
+        for part in response.candidates[0].content.parts:
             if hasattr(part, 'thought') and part.thought:
-                thinking_parts.append(str(part))
+                thinking_parts.append(str(part.text) if hasattr(part, 'text') else str(part))
             elif hasattr(part, 'text') and part.text:
                 response_parts.append(part.text)
 
@@ -140,3 +141,4 @@ async def generate_with_thinking(
             "thinking": None,
             "response": f"Error: {str(e)}"
         }
+

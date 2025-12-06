@@ -6,11 +6,16 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.6",
-    "uvicorn[standard]>=0.34.0",
+    "hypercorn[trio]>=0.17.0",
+    "trio>=0.28.0",
     "python-dotenv>=1.0.1",
     "pydantic>=2.10.4",
     "pydantic-settings>=2.7.1",
-    "google-generativeai>=0.8.5",
+    "google-genai>=1.53.0",
+    "Pillow>=11.0.0",
+    "python-multipart>=0.0.9",
+    "invisible-watermark>=0.2.0",
+    "opencv-python>=4.8.0",
 ]
 
 [tool.uv]

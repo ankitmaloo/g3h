@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { generateImage } from "@/services/api";
 
 const PixelGenerationEffect = () => {
     const gridSize = 16;
@@ -89,6 +90,8 @@ export default function CreationScreen() {
     const [secretData, setSecretData] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,25 +123,32 @@ export default function CreationScreen() {
         setIsComplete(false);
     };
 
-    const handleEmbed = () => {
-        if (sourceImages.length === 0 || !secretData) return;
+    const handleEmbed = async () => {
+        if (sourceImages.length === 0) return;
 
         setIsProcessing(true);
         setIsComplete(false);
+        setError(null);
 
-        setTimeout(() => {
-            setIsProcessing(false);
+        try {
+            const generatedUrl = await generateImage(sourceImages, secretData);
+            setGeneratedImageUrl(generatedUrl);
             setIsComplete(true);
-        }, 4000);
+        } catch (err) {
+            console.error("Generation failed:", err);
+            setError(err instanceof Error ? err.message : "Generation failed");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleDownload = () => {
-        const currentUrl = previewUrls[activeIndex];
-        if (!currentUrl) return;
+        const urlToDownload = isComplete && generatedImageUrl ? generatedImageUrl : previewUrls[activeIndex];
+        if (!urlToDownload) return;
 
         const a = document.createElement("a");
-        a.href = currentUrl;
-        a.download = `nexus_portrait_${activeIndex + 1}_${Date.now()}.png`;
+        a.href = urlToDownload;
+        a.download = `nexus_portrait_${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -151,6 +161,8 @@ export default function CreationScreen() {
         setSecretData("");
         setIsComplete(false);
         setIsProcessing(false);
+        setGeneratedImageUrl(null);
+        setError(null);
     };
 
     const removeImage = (index: number, e: React.MouseEvent) => {
@@ -304,7 +316,7 @@ export default function CreationScreen() {
                                 {!isComplete ? (
                                     <Button
                                         onClick={handleEmbed}
-                                        disabled={sourceImages.length === 0 || !secretData || isProcessing}
+                                        disabled={sourceImages.length === 0 || isProcessing}
                                         className="relative w-full h-14 bg-white text-black font-semibold tracking-wide transition-all duration-500 overflow-hidden group/btn hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-r from-orange-400 via-orange-200 to-orange-400 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500 mix-blend-color-dodge blur-lg" />
@@ -322,20 +334,27 @@ export default function CreationScreen() {
                                         </span>
                                     </Button>
                                 ) : (
-                                    <div className="flex gap-4">
-                                        <Button
-                                            onClick={handleDownload}
-                                            className="flex-1 h-14 bg-rose-600 hover:bg-rose-500 text-white font-bold tracking-wide shadow-[0_0_40px_rgba(225,29,72,0.3)] hover:shadow-[0_0_60px_rgba(225,29,72,0.5)] transition-all duration-300"
-                                        >
-                                            <Download className="mr-2 h-5 w-5" /> DOWNLOAD ASSET
-                                        </Button>
-                                        <Button
-                                            onClick={() => { setIsProcessing(false); setIsComplete(false); }}
-                                            variant="outline"
-                                            className="h-14 w-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-white rounded-xl"
-                                        >
-                                            <RefreshCw size={20} />
-                                        </Button>
+                                    <div className="flex flex-col gap-4">
+                                        {error && (
+                                            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">
+                                                {error}
+                                            </div>
+                                        )}
+                                        <div className="flex gap-4">
+                                            <Button
+                                                onClick={handleDownload}
+                                                className="flex-1 h-14 bg-rose-600 hover:bg-rose-500 text-white font-bold tracking-wide shadow-[0_0_40px_rgba(225,29,72,0.3)] hover:shadow-[0_0_60px_rgba(225,29,72,0.5)] transition-all duration-300"
+                                            >
+                                                <Download className="mr-2 h-5 w-5" /> DOWNLOAD ASSET
+                                            </Button>
+                                            <Button
+                                                onClick={() => { setIsProcessing(false); setIsComplete(false); setGeneratedImageUrl(null); setError(null); }}
+                                                variant="outline"
+                                                className="h-14 w-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-white rounded-xl"
+                                            >
+                                                <RefreshCw size={20} />
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -377,7 +396,7 @@ export default function CreationScreen() {
                                     </motion.div>
                                 ) : (
                                     <motion.div
-                                        key={previewUrls[activeIndex]}
+                                        key={isComplete && generatedImageUrl ? generatedImageUrl : previewUrls[activeIndex]}
                                         className="relative w-full h-full flex items-center justify-center"
                                         initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
                                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
@@ -390,7 +409,7 @@ export default function CreationScreen() {
                                             ${isComplete ? 'scale-100' : ''}
                                         `}>
                                             <motion.img
-                                                src={previewUrls[activeIndex]}
+                                                src={isComplete && generatedImageUrl ? generatedImageUrl : previewUrls[activeIndex]}
                                                 alt="Target"
                                                 className="max-h-[600px] w-auto h-auto object-contain rounded-lg shadow-2xl"
                                                 animate={{
@@ -434,7 +453,7 @@ export default function CreationScreen() {
                     </div>
 
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

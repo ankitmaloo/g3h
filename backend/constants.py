@@ -28,9 +28,11 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: str = "*"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
 
 
 # Initialize settings
