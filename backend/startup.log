@@ -1,0 +1,8 @@
+warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+[2025-12-06 15:07:44 -0800] [65533] [INFO] Running on http://0.0.0.0:8000 (CTRL + C to quit)
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+API KEY =  AIzaSyBmVHfHY4IpKvTf8-RqXiDSmPgGeZTvoUU
+Starting server on http://0.0.0.0:8000
+Mock mode: False
+Saved generated image to generated_images/gen_1765062571.png
+[Watermark] Embedding 14 bytes of hidden data

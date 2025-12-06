@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
 import base64
+import os
 
 from ai_assistant import stream_gemini_response, chat_with_history, generate_with_thinking
 from constants import (
@@ -22,6 +23,7 @@ from watermark import embed_watermark, decode_watermark
 
 # Load environment variables
 load_dotenv()
+print("API KEY = ", os.getenv("GEMINI_API_KEY"))
 
 # Initialize FastAPI app
 app = FastAPI(

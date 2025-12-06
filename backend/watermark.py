@@ -110,7 +110,9 @@ def decode_watermark(image_bytes: bytes) -> Optional[str]:
             
             # Sanity check: length must be reasonable
             if payload_length > MAX_PAYLOAD_BYTES:
-                print(f"[Watermark] Invalid length extracted: {payload_length}")
+                # 65535 (0xFFFF) is common for non-watermarked images (all 1s)
+                if payload_length != 65535:
+                    print(f"[Watermark] Invalid length extracted: {payload_length}")
                 return None
             
             # Extract actual payload

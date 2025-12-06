@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/ankit/Documents/dev/hacks/g3/backend/reproduce_issue.py", line 4, in <module>
+    from watermark import embed_watermark, decode_watermark
+  File "/Users/ankit/Documents/dev/hacks/g3/backend/watermark.py", line 17, in <module>
+    from typing import Optional
+  File "/Users/ankit/.local/share/uv/python/cpython-3.11.13-macos-aarch64-none/lib/python3.11/typing.py", line 26, in <module>
+    import contextlib
+  File "/Users/ankit/.local/share/uv/python/cpython-3.11.13-macos-aarch64-none/lib/python3.11/contextlib.py", line 7, in <module>
+    from functools import wraps
+  File "/Users/ankit/.local/share/uv/python/cpython-3.11.13-macos-aarch64-none/lib/python3.11/functools.py", line 226, in <module>
+    from _functools import cmp_to_key
+KeyboardInterrupt

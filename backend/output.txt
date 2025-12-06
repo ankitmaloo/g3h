@@ -1,0 +1,18 @@
+Testing Watermark Cycle...
+Source image size: 117640 bytes
+Embedding payload: 'Test Watermark 123'
+Watermarked image size: 373346 bytes
+
+--- Direct Decode ---
+Decoded text: 'Test Watermark 123'
+SUCCESS: Watermark extracted correctly (Direct).
+
+--- JPEG Compression Test ---
+JPEG size: 157933 bytes
+Decoded text (JPEG): 'None'
+FAILURE: Watermark lost in JPEG compression.
+
+--- Resize Test (90%) ---
+Resizing from 720x960 to (648, 864)
+Decoded text (Resize): 'None'
+FAILURE: Watermark lost in resizing.
