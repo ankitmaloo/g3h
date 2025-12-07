@@ -73,7 +73,7 @@ async def generate_image_from_references(
             config=types.GenerateContentConfig(
                 response_modalities=["IMAGE", "TEXT"], # Explicitly ask for both if needed
                 image_config=types.ImageConfig(
-                    image_size="1K",
+                    image_size="4K",
                 ),
             ),
         )

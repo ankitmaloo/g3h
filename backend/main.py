@@ -19,7 +19,6 @@ from constants import (
     TEMPERATURE
 )
 from image_generator import generate_image_from_references, MOCK_MODE
-from watermark import embed_watermark, decode_watermark
 
 # Load environment variables
 load_dotenv()
@@ -311,14 +310,9 @@ image high-frequency components.
 if __name__ == "__main__":
     # To start the server, run:
     # uv run python main.py
-    import trio
-    from hypercorn.config import Config
-    from hypercorn.trio import serve
-    
-    config = Config()
-    config.bind = ["0.0.0.0:8000"]
-    
-    print(f"Starting server on http://0.0.0.0:8000")
+    import uvicorn
+
+    print("Starting server on http://0.0.0.0:8000")
     print(f"Mock mode: {MOCK_MODE}")
-    
-    trio.run(serve, app, config)
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
